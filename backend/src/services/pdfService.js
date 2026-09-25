@@ -1,0 +1,267 @@
+const { chromium } = require("playwright");
+
+async function generateApplicationReport(reportData, outputPath) {
+  const browser = await chromium.launch({
+    headless: true,
+  });
+
+  try {
+    const page = await browser.newPage();
+
+    const {
+      userName,
+      generatedDate,
+      summary,
+      applications,
+    } = reportData;
+
+    const applicationRows = applications
+      .map(
+        (application) => `
+          <tr>
+            <td>${escapeHtml(application.company)}</td>
+            <td>${escapeHtml(application.role)}</td>
+            <td>${escapeHtml(application.status)}</td>
+            <td>${escapeHtml(
+              application.application_date || "-"
+            )}</td>
+            <td>${escapeHtml(
+              application.deadline || "-"
+            )}</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8" />
+
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #1f2937;
+          }
+
+          .header {
+            border-bottom: 3px solid #16a34a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+
+          h1 {
+            margin: 0;
+            color: #166534;
+          }
+
+          .date {
+            color: #6b7280;
+            margin-top: 8px;
+          }
+
+          .cards {
+            display: grid;
+            grid-template-columns:
+              repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 35px;
+          }
+
+          .card {
+            padding: 18px;
+            border: 1px solid #d1fae5;
+            border-radius: 10px;
+            background: #f0fdf4;
+          }
+
+          .card-title {
+            font-size: 13px;
+            color: #166534;
+          }
+
+          .card-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 8px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+
+          th {
+            background: #166534;
+            color: white;
+            text-align: left;
+            padding: 10px;
+          }
+
+          td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+
+          .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 12px;
+          }
+        </style>
+      </head>
+
+      <body>
+
+        <div class="header">
+          <h1>ApplyFlow AI</h1>
+
+          <h2>
+            Application Progress Report
+          </h2>
+
+          <p>
+            Candidate:
+            ${escapeHtml(userName || "User")}
+          </p>
+
+          <p class="date">
+            Generated:
+            ${escapeHtml(generatedDate)}
+          </p>
+        </div>
+
+        <div class="cards">
+
+          <div class="card">
+            <div class="card-title">
+              Total Applications
+            </div>
+
+            <div class="card-value">
+              ${summary.total}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Applied
+            </div>
+
+            <div class="card-value">
+              ${summary.applied}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Shortlisted
+            </div>
+
+            <div class="card-value">
+              ${summary.shortlisted}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Interviews
+            </div>
+
+            <div class="card-value">
+              ${summary.interview}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Selected
+            </div>
+
+            <div class="card-value">
+              ${summary.selected}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Rejected
+            </div>
+
+            <div class="card-value">
+              ${summary.rejected}
+            </div>
+          </div>
+
+        </div>
+
+        <h2>Application Details</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Applied</th>
+              <th>Deadline</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${applicationRows}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Generated by ApplyFlow AI
+        </div>
+
+      </body>
+      </html>
+    `;
+
+    await page.setContent(html, {
+      waitUntil: "networkidle",
+    });
+
+    await page.pdf({
+      path: outputPath,
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        right: "15mm",
+        bottom: "20mm",
+        left: "15mm",
+      },
+    });
+
+    return outputPath;
+  } finally {
+    await browser.close();
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+module.exports = {
+  generateApplicationReport,
+};

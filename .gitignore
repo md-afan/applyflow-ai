@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Next.js
+frontend/.next/
+
+# Environment variables
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+backend/.env
+
+# Generated reports
+backend/reports/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
